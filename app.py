@@ -47,6 +47,26 @@ def load_scaler():
 scaler = load_scaler()
 
 # ----------------------------------------
+# Define the Post-Processing Function
+# ----------------------------------------
+def enforce_no_consecutive_jumps(predictions):
+    """
+    Modifies the predictions so that if a 'Jump' (1) is detected,
+    the next prediction is set to 'Walk' (0).
+
+    Parameters:
+        predictions (np.array): Array of predicted labels.
+
+    Returns:
+        modified_predictions (np.array): Array with enforced rules.
+    """
+    modified_predictions = predictions.copy()
+    for i in range(len(modified_predictions) - 1):
+        if modified_predictions[i] == 1:
+            modified_predictions[i + 1] = 0
+    return modified_predictions
+
+# ----------------------------------------
 # Streamlit App Title and Description
 # ----------------------------------------
 st.title("📱 Activity Recognition: Walking vs. Jumping Classification")
@@ -114,7 +134,7 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"Error reading the CSV file: {e}")
                 st.stop()
-    
+
     # ----------------------------------------
     # Data Preprocessing
     # ----------------------------------------
@@ -125,20 +145,21 @@ if uploaded_file is not None:
     - **Handling Missing Values:** Removes any incomplete entries to maintain data integrity.
     - **Segmenting Data:** Breaks down the data into overlapping windows to capture activity patterns effectively.
     """)
-        
+
     # Required columns based on training
     required_columns = ['acceleration x (m/s^2)', 'acceleration y (m/s^2)', 'acceleration z (m/s^2)']
-    
-    
-    # Check if required columns exist
-    missing_cols = [col for col in required_columns if col not in data.columns]
+
+    # Check if required columns exist (case-insensitive)
+    data.columns = data.columns.str.lower().str.strip()
+    required_columns_lower = [col.lower() for col in required_columns]
+    missing_cols = [col for col in required_columns_lower if col not in data.columns]
     if missing_cols:
         st.error(f"Uploaded CSV does not contain the required columns: {missing_cols}")
         st.stop()
-    
+
     # Handle missing values by dropping rows with NaNs in required columns
     initial_shape = data.shape
-    data.dropna(subset=required_columns, inplace=True)
+    data.dropna(subset=required_columns_lower, inplace=True)
     final_shape = data.shape
     st.write(f"Dropped {initial_shape[0] - final_shape[0]} rows due to missing values.")
 
@@ -188,14 +209,15 @@ if uploaded_file is not None:
 
     def extract_features(segment):
         features = {}
-        for col in required_columns:
-            features[f'{col}_mean'] = segment[col].mean()
-            features[f'{col}_std'] = segment[col].std()
-            features[f'{col}_max'] = segment[col].max()
-            features[f'{col}_min'] = segment[col].min()
-            features[f'{col}_median'] = segment[col].median()
-            features[f'{col}_skew'] = segment[col].skew()
-            features[f'{col}_kurtosis'] = segment[col].kurtosis()
+        for col in required_columns_lower:
+            data = segment[col]
+            features[f'{col}_mean'] = data.mean()
+            features[f'{col}_std'] = data.std()
+            features[f'{col}_max'] = data.max()
+            features[f'{col}_min'] = data.min()
+            features[f'{col}_median'] = data.median()
+            features[f'{col}_skew'] = data.skew()
+            features[f'{col}_kurtosis'] = data.kurtosis()
         return features
 
     feature_list = []
@@ -247,6 +269,18 @@ if uploaded_file is not None:
         st.stop()
 
     # ----------------------------------------
+    # Enforce No Consecutive Jumps
+    # ----------------------------------------
+    st.header("🛡️ Enforcing No Consecutive Jumps")
+    st.markdown("""
+    To ensure realistic activity patterns, the app enforces a rule where if a segment is classified as **Jumping** (`1`), the immediate next segment is automatically set to **Walking** (`0`).
+    """)
+
+    predictions_modified = enforce_no_consecutive_jumps(predictions)
+    st.write("Modified Predictions:")
+    st.write(predictions_modified)
+
+    # ----------------------------------------
     # Mapping Predictions to Time
     # ----------------------------------------
     st.header("🕒 Mapping Predictions to Time")
@@ -255,8 +289,8 @@ if uploaded_file is not None:
     """)
 
     # Assign each prediction to the middle time point of its window
-    if 'time_s' in data.columns:
-        time_series = data['time_s']
+    if 'time (s)' in data.columns:
+        time_series = data['time (s)']
     else:
         # Attempt to find a column that resembles time
         time_cols = [col for col in data.columns if 'time' in col]
@@ -280,7 +314,7 @@ if uploaded_file is not None:
     # Create a DataFrame for predictions
     prediction_df = pd.DataFrame({
         'time_s': window_mid_points,
-        'predicted_activity': predictions,
+        'predicted_activity': predictions_modified,
         'prob_walking': prediction_proba[:, 0],
         'prob_jumping': prediction_proba[:, 1]
     })
@@ -297,7 +331,7 @@ if uploaded_file is not None:
     """)
 
     plt.figure(figsize=(15, 5))
-    sns.lineplot(x='time_s', y='predicted_activity', data=prediction_df, marker='o')
+    sns.lineplot(x='time_s', y='predicted_activity', data=prediction_df, marker='o', color='red')
     plt.yticks([0, 1], ['Walking', 'Jumping'])
     plt.xlabel('Time (s)')
     plt.ylabel('Predicted Activity')

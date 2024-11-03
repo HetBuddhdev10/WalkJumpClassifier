@@ -51,6 +51,7 @@ Welcome to the **Activity Recognition** application! This tool leverages machine
     ```
     activity-recognition-app/
     ├── app.py
+    |
     ├── models/
     │   ├── random_forest_model.pkl
     │   └── scaler.pkl
@@ -60,3 +61,4 @@ Welcome to the **Activity Recognition** application! This tool leverages machine
     ├── README.md
     └── .gitignore
     ```
+"# WalkJumpClassifier" 

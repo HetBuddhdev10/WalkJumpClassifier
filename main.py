@@ -158,7 +158,7 @@ combined_data.dropna(inplace=True)
 combined_data.reset_index(drop=True, inplace=True)
 
 # ----------------------------------------
-# Step 4: Data Visualization (Optional)
+# Step 4: Data Visualization 
 # ----------------------------------------
 
 # Visualize a sample of accelerometer data for walking activity
@@ -305,26 +305,54 @@ except Exception as e:
 # Make predictions on the test set using the trained Random Forest model
 y_pred_rf = rf_model.predict(X_test)
 
-# Generate the classification report for Random Forest
-classification_report_rf = classification_report(y_test, y_pred_rf)
+# ----------------------------------------
+# Step 10: Post-Processing to Enforce No Consecutive Jumps
+# ----------------------------------------
 
-# Generate the confusion matrix for Random Forest
-confusion_matrix_rf = confusion_matrix(y_test, y_pred_rf)
+def enforce_no_consecutive_jumps(predictions):
+    """
+    Modifies the predictions so that if a 'Jump' (1) is detected,
+    the next prediction is set to 'Walk' (0).
 
-# Calculate the accuracy score for Random Forest as a percentage
-rf_accuracy = accuracy_score(y_test, y_pred_rf) * 100
+    Parameters:
+        predictions (np.array): Array of predicted labels.
 
-# Display evaluation metrics
-print("\nRandom Forest Classification Report:")
-print(classification_report_rf)
+    Returns:
+        modified_predictions (np.array): Array with enforced rules.
+    """
+    modified_predictions = predictions.copy()
+    for i in range(len(modified_predictions) - 1):
+        if modified_predictions[i] == 1:
+            modified_predictions[i + 1] = 0
+    return modified_predictions
 
-print("Random Forest Confusion Matrix:")
-print(confusion_matrix_rf)
-
-print(f"Random Forest Accuracy Score: {rf_accuracy:.2f}%")
+# Apply the post-processing function to Random Forest predictions
+y_pred_rf_modified = enforce_no_consecutive_jumps(y_pred_rf)
 
 # ----------------------------------------
-# Step 10: ROC Curve and AUC for Random Forest
+# Step 11: Continue Model Evaluation with Modified Predictions
+# ----------------------------------------
+
+# Generate the classification report for Random Forest with modified predictions
+classification_report_rf = classification_report(y_test, y_pred_rf_modified)
+
+# Generate the confusion matrix for Random Forest with modified predictions
+confusion_matrix_rf = confusion_matrix(y_test, y_pred_rf_modified)
+
+# Calculate the accuracy score for Random Forest as a percentage
+rf_accuracy = accuracy_score(y_test, y_pred_rf_modified) * 100
+
+# Display evaluation metrics
+print("\nRandom Forest Classification Report (After Post-Processing):")
+print(classification_report_rf)
+
+print("Random Forest Confusion Matrix (After Post-Processing):")
+print(confusion_matrix_rf)
+
+print(f"Random Forest Accuracy Score (After Post-Processing): {rf_accuracy:.2f}%")
+
+# ----------------------------------------
+# Step 12: ROC Curve and AUC for Random Forest
 # ----------------------------------------
 
 # Compute the predicted probabilities for the positive class
@@ -349,7 +377,29 @@ plt.savefig(os.path.join(plots_dir, 'random_forest_roc_curve.png'))
 plt.close()
 
 # ----------------------------------------
-# Compare with Logistic Regression Model
+# Step 13: Plot Time vs Activity
+# ----------------------------------------
+
+# Calculate time for each prediction window
+step_size = window_size_samples // 2  # 50% overlap
+window_shift_seconds = step_size / sampling_rate  # e.g., 2.5 seconds
+window_duration_seconds = window_size_samples / sampling_rate  # e.g., 5 seconds
+total_windows = len(y_pred_rf_modified)
+time = np.arange(total_windows) * window_shift_seconds + (window_duration_seconds / 2)
+
+# Plot Time vs Activity for Random Forest
+plt.figure(figsize=(15, 5))
+plt.step(time, y_pred_rf_modified, where='mid', label='Random Forest Predictions', color='red')
+plt.yticks([0, 1], ['Walking', 'Jumping'])
+plt.xlabel('Time (s)')
+plt.ylabel('Activity')
+plt.title('Time vs Activity - Random Forest')
+plt.legend()
+plt.tight_layout()
+plt.close()
+
+# ----------------------------------------
+# Step 14: Compare with Logistic Regression Model
 # ----------------------------------------
 
 # Initialize the Logistic Regression model with increased max_iter for convergence
@@ -365,17 +415,20 @@ except Exception as e:
 # Make predictions on the test set using Logistic Regression
 y_pred_lr = lr_model.predict(X_test)
 
-# Generate the classification report for Logistic Regression
-classification_report_lr = classification_report(y_test, y_pred_lr)
+# Apply the post-processing function to Logistic Regression predictions
+y_pred_lr_modified = enforce_no_consecutive_jumps(y_pred_lr)
+
+# Generate the classification report for Logistic Regression with modified predictions
+classification_report_lr = classification_report(y_test, y_pred_lr_modified)
 
 # Calculate the accuracy score for Logistic Regression as a percentage
-lr_accuracy = accuracy_score(y_test, y_pred_lr) * 100
+lr_accuracy = accuracy_score(y_test, y_pred_lr_modified) * 100
 
 # Display evaluation metrics
-print("\nLogistic Regression Classification Report:")
+print("\nLogistic Regression Classification Report (After Post-Processing):")
 print(classification_report_lr)
 
-print(f"Logistic Regression Accuracy Score: {lr_accuracy:.2f}%")
+print(f"Logistic Regression Accuracy Score (After Post-Processing): {lr_accuracy:.2f}%")
 
 # Compute the predicted probabilities for the positive class using Logistic Regression
 y_pred_proba_lr = lr_model.predict_proba(X_test)[:, 1]
@@ -400,14 +453,16 @@ plt.savefig(os.path.join(plots_dir, 'roc_curve_comparison.png'))
 plt.close()
 
 # ----------------------------------------
-# Step 11: Save the Trained Random Forest Model
+# Step 15: Save the Trained Models
 # ----------------------------------------
 
-# Define the filename for saving the model
-model_filename = os.path.join(models_dir, 'random_forest_model.pkl')
-
 # Save the trained Random Forest model to disk using joblib
-joblib.dump(rf_model, model_filename)
+rf_model_filename = os.path.join(models_dir, 'random_forest_model.pkl')
+joblib.dump(rf_model, rf_model_filename)
+
+# Save the trained Logistic Regression model to disk using joblib
+lr_model_filename = os.path.join(models_dir, 'logistic_regression_model.pkl')
+joblib.dump(lr_model, lr_model_filename)
 
 # Final Print Statement to indicate successful execution
-print("Model training and evaluation completed successfully.")
+print("Model training, evaluation, and saving completed successfully.")
