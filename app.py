@@ -268,18 +268,10 @@ if uploaded_file is not None:
         st.error("Model is not loaded. Cannot make predictions.")
         st.stop()
 
-    # ----------------------------------------
-    # Enforce No Consecutive Jumps
-    # ----------------------------------------
-    st.header("🛡️ Enforcing No Consecutive Jumps")
-    st.markdown("""
-    To ensure realistic activity patterns, the app enforces a rule where if a segment is classified as **Jumping** (`1`), the immediate next segment is automatically set to **Walking** (`0`).
-    """)
-
+    
+    #calling function to make sure there are not conecutive jumps 
     predictions_modified = enforce_no_consecutive_jumps(predictions)
-    st.write("Modified Predictions:")
-    st.write(predictions_modified)
-
+    
     # ----------------------------------------
     # Mapping Predictions to Time
     # ----------------------------------------
