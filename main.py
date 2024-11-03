@@ -110,7 +110,7 @@ else:
 # Step 2: Initial Data Exploration
 # ----------------------------------------
 
-# (Optional) Uncomment the following lines if you need to perform data exploration
+# Uncomment the following lines if you need to perform data exploration
 # print("\nSummary Statistics:")
 # print(combined_data.describe())
 

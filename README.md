@@ -62,3 +62,31 @@ Welcome to the **Activity Recognition** application! This tool leverages machine
     └── .gitignore
     ```
 "# WalkJumpClassifier" 
+
+
+## **Example: Running the App with Sample Data**
+
+To help you get started quickly, we've included a `sample_data.csv` file in the `datasets/` directory. Follow the steps below to see the app in action:
+
+1. **Locate the Sample Data:**
+   - Navigate to the `datasets/` folder in your project directory.
+   - Find the `sample_data.csv` file, which contains example accelerometer readings.
+
+2. **Upload the Sample Data:**
+   - Open the Streamlit app by running:
+     ```bash
+     streamlit run app.py
+     ```
+   - In the app interface, click on the **"📥 Upload Accelerometer Data CSV"** section.
+   - Select and upload the `sample_data.csv` file from the `datasets/` folder.
+
+3. **View the Output:**
+   - After uploading, the app will process the data and display various sections as described in the **Using the App** section.
+   - **Example Output Graph:**
+     
+     ![Activity Plot Example](plots/sample_data_result.png)
+     *Activity Plot: Visualization of walking and jumping activities over time.*
+
+4. **Download the Predictions:**
+   - Scroll down to the **"💾 Download Prediction Results"** section.
+   - Click the **"Download Predictions as CSV"** button to save your results locally.
