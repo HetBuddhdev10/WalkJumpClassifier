@@ -61,8 +61,6 @@ Welcome to the **Activity Recognition** application! This tool leverages machine
     ├── README.md
     └── .gitignore
     ```
-"# WalkJumpClassifier" 
-
 
 ## **Example: Running the App with Sample Data**
 
